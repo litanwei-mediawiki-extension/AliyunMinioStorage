@@ -1,0 +1,50 @@
+{
+	"name": "AliyunMinioStorage",
+	"namemsg": "aliyunminiostorage-extension-name",
+	"version": "0.0.1",
+	"author": [
+		"Litanwei <web@litanwei.com>"
+	],
+	"url": "https://www.mediawiki.org/wiki/Extension:AliyunMinioStorage",
+	"descriptionmsg": "aliyunminiostorage-desc",
+	"license-name": "GPL-2.0-or-later",
+	"type": "other",
+	"requires": {
+		"MediaWiki": ">= 1.45.0"
+	},
+	"AutoloadClasses": {
+		"AliyunMinioStorage\\AliyunMinioFileBackend": "src/AliyunMinioFileBackend.php"
+	},
+	"MessagesDirs": {
+		"AliyunMinioStorage": [
+			"i18n"
+		]
+	},
+	"config_prefix": "wg",
+	"config": {
+		"AliyunMinioStorageCredentials": {
+			"descriptionmsg": "config-AliyunMinioStorageCredentials",
+			"value": {
+				"key": false,
+				"secret": false
+			}
+		},
+		"AliyunMinioStorageRegion": {
+			"descriptionmsg": "config-AliyunMinioStorageRegion",
+			"value": "us-east-1"
+		},
+		"AliyunMinioStorageEndpoint": {
+			"descriptionmsg": "config-AliyunMinioStorageEndpoint",
+			"value": null
+		},
+		"AliyunMinioStorageServiceType": {
+			"descriptionmsg": "config-AliyunMinioStorageServiceType",
+			"value": "minio"
+		},
+		"AliyunMinioStorageStatCacheExpiry": {
+			"descriptionmsg": "config-AliyunMinioStorageStatCacheExpiry",
+			"value": 604800
+		}
+	},
+	"manifest_version": 2
+}

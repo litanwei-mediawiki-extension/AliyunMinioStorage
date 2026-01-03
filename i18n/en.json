@@ -1,0 +1,33 @@
+{
+	"@metadata": {
+		"authors": [
+			"Litanwei"
+		]
+	},
+	"aliyunminiostorage-desc": "Provides Amazon S3, Aliyun OSS, and MinIO storage backend support using AWS SDK v3.",
+	"aliyunminiostorage-verify-start": "Starting verification...",
+	"aliyunminiostorage-verify-backend-loaded": "Backend loaded: $1",
+	"aliyunminiostorage-verify-target-container": "Target Container: $1",
+	"aliyunminiostorage-verify-testing-create": "Testing Create...",
+	"aliyunminiostorage-verify-create-success": "Create OK.",
+	"aliyunminiostorage-verify-create-failed": "Create failed: $1",
+	"aliyunminiostorage-verify-testing-stat": "Testing Stat...",
+	"aliyunminiostorage-verify-file-not-exist": "File does not exist after create!",
+	"aliyunminiostorage-verify-stat-success": "Stat OK. Size: $1",
+	"aliyunminiostorage-verify-testing-list": "Testing List...",
+	"aliyunminiostorage-verify-list-success": "List OK. Found test file in listing.",
+	"aliyunminiostorage-verify-list-warning": "List Warning: Test file not found in root listing (might be expected if filtered).",
+	"aliyunminiostorage-verify-testing-delete": "Testing Delete...",
+	"aliyunminiostorage-verify-delete-success": "Delete OK.",
+	"aliyunminiostorage-verify-delete-failed": "Delete failed: $1",
+	"aliyunminiostorage-verify-file-exists-after-delete": "File still exists after delete!",
+	"aliyunminiostorage-verify-all-passed": "All verification steps passed!",
+	"aliyunminiostorage-verify-unexpected-backend": "Note: Backend is $1, expected AliyunMinioFileBackend.",
+	"aliyunminiostorage-verify-backend-not-found": "Could not load backend '$1'",
+	"aliyunminiostorage-extension-name": "Aliyun MinIO Storage",
+	"config-AliyunMinioStorageCredentials": "Credentials (key and secret) used for S3 connection.",
+	"config-AliyunMinioStorageRegion": "Storage region (e.g., oss-cn-hangzhou or us-east-1).",
+	"config-AliyunMinioStorageEndpoint": "Storage service endpoint URL.",
+	"config-AliyunMinioStorageServiceType": "Service type: 'aliyun' or 'minio'.",
+	"config-AliyunMinioStorageStatCacheExpiry": "Expiry time for stat cache in seconds."
+}

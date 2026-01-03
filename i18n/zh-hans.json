@@ -1,0 +1,33 @@
+{
+	"@metadata": {
+		"authors": [
+			"Litanwei"
+		]
+	},
+	"aliyunminiostorage-desc": "基于 AWS SDK v3 实现的阿里云 OSS 和 MinIO 对象存储后端支持。",
+	"aliyunminiostorage-verify-start": "开始执行验证...",
+	"aliyunminiostorage-verify-backend-loaded": "已加载后端: $1",
+	"aliyunminiostorage-verify-target-container": "目标容器: $1",
+	"aliyunminiostorage-verify-testing-create": "正在测试写入 (Create)...",
+	"aliyunminiostorage-verify-create-success": "写入成功。",
+	"aliyunminiostorage-verify-create-failed": "写入失败: $1",
+	"aliyunminiostorage-verify-testing-stat": "正在测试状态读取 (Stat)...",
+	"aliyunminiostorage-verify-file-not-exist": "错误：写入后文件不存在！",
+	"aliyunminiostorage-verify-stat-success": "状态读取成功。大小: $1",
+	"aliyunminiostorage-verify-testing-list": "正在测试列表读取 (List)...",
+	"aliyunminiostorage-verify-list-success": "列表读取成功。在列表中找到了测试文件。",
+	"aliyunminiostorage-verify-list-warning": "列表警告：在根目录列表中未找到测试文件 (可能被过滤)。",
+	"aliyunminiostorage-verify-testing-delete": "正在测试删除 (Delete)...",
+	"aliyunminiostorage-verify-delete-success": "删除成功。",
+	"aliyunminiostorage-verify-delete-failed": "删除失败: $1",
+	"aliyunminiostorage-verify-file-exists-after-delete": "错误：删除操作后文件仍然存在！",
+	"aliyunminiostorage-verify-all-passed": "所有验证步骤全部通过！SUCCESS",
+	"aliyunminiostorage-verify-unexpected-backend": "注意：后端类名为 $1，预期为 AliyunMinioFileBackend。",
+	"aliyunminiostorage-verify-backend-not-found": "无法加载后端 '$1'",
+	"aliyunminiostorage-extension-name": "Aliyun MinIO 存储",
+	"config-AliyunMinioStorageCredentials": "S3 连接凭证（key 和 secret）。",
+	"config-AliyunMinioStorageRegion": "对象存储区域（如 oss-cn-hangzhou 或 us-east-1）。",
+	"config-AliyunMinioStorageEndpoint": "存储服务终端地址（Endpoint）。",
+	"config-AliyunMinioStorageServiceType": "服务类型：'aliyun' 或 'minio'。",
+	"config-AliyunMinioStorageStatCacheExpiry": "Stat 缓存有效期（秒）。"
+}
