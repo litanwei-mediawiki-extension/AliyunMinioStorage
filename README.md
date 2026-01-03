@@ -22,7 +22,7 @@
 1.  将本扩展下载或克隆到 `extensions/` 目录：
     ```bash
     cd extensions/
-    git clone https://github.com/litanwei/AliyunMinioStorage.git AliyunMinioStorage
+    git clone https://github.com/litanwei-mediawiki-extension/AliyunMinioStorage.git AliyunMinioStorage
     ```
 
 2.  在 `LocalSettings.php` 或 `FarmSettings.php` 中启用：
