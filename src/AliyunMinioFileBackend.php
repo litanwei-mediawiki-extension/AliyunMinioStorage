@@ -520,7 +520,10 @@ class AliyunMinioFileBackend extends FileBackendStore
             try {
                 // 创建临时文件
                 $ext = FileBackend::extensionFromPath($src);
-                $tmpFile = \Wikimedia\FileBackend\FSFile\TempFSFile::factory('s3_', $ext, $this->tmpDirectory);
+                // 修复: tmpDirectory 属性在 FileBackendStore 中可能未初始化
+                // 使用 wfTempDir() 获取 MediaWiki 配置的临时目录
+                $tmpDir = $this->tmpDirectory ?? wfTempDir();
+                $tmpFile = \Wikimedia\FileBackend\FSFile\TempFSFile::factory('s3_', $ext, $tmpDir);
 
                 $this->getClient()->getObject([
                     'Bucket' => $bucket,
