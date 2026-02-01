@@ -1,0 +1,11 @@
+{
+    "name": "litanwei/aliyun-minio-storage",
+    "type": "mediawiki-extension",
+    "description": "MediaWiki file backend for Aliyun OSS and MinIO (S3-compatible)",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://github.com/litanwei-mediawiki-extension/AliyunMinioStorage",
+    "require": {
+        "php": ">=8.1",
+        "aws/aws-sdk-php": "^3.0"
+    }
+}
