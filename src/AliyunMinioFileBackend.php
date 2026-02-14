@@ -84,11 +84,26 @@ class AliyunMinioFileBackend extends FileBackendStore
             'region' => $this->config['region'] ?? 'us-east-1', // MinIO 默认通常是 us-east-1
         ];
 
-        // 认证凭证
+        // 认证凭证 (含完整性校验)
         if (isset($this->config['credentials'])) {
+            // 校验 credentials 数组必须包含 key 和 secret
+            if (
+                !is_array($this->config['credentials'])
+                || empty($this->config['credentials']['key'])
+                || empty($this->config['credentials']['secret'])
+            ) {
+                throw new \InvalidArgumentException(
+                    'AliyunMinioStorage: credentials 配置必须包含非空的 key 和 secret'
+                );
+            }
             $params['credentials'] = $this->config['credentials'];
         } elseif (isset($this->config['awsKey'])) {
-            // 兼容旧式配置
+            // 兼容旧式配置，同样校验完整性
+            if (empty($this->config['awsKey']) || empty($this->config['awsSecret'] ?? '')) {
+                throw new \InvalidArgumentException(
+                    'AliyunMinioStorage: awsKey 和 awsSecret 配置不能为空'
+                );
+            }
             $params['credentials'] = [
                 'key' => $this->config['awsKey'],
                 'secret' => $this->config['awsSecret'],
@@ -129,10 +144,17 @@ class AliyunMinioFileBackend extends FileBackendStore
      */
     protected function resolveContainerPath($container, $relStoragePath)
     {
-        // S3 允许几乎所有字符，只需长度限制检查
+        // 安全检查 1：路径遍历防护 - 阻止 ../ 等目录穿越攻击
+        if (preg_match('/(?:^|\/)\.\.(?:\/|$)/', $relStoragePath)) {
+            wfLogWarning("AliyunMinioStorage: 检测到路径遍历尝试: '$relStoragePath'");
+            return null;
+        }
+
+        // 安全检查 2：URL 编码后长度限制 (S3 对象键最大 1024 字节)
         if (strlen(urlencode($relStoragePath)) > 1024) {
             return null;
         }
+
         return $relStoragePath;
     }
 
@@ -148,10 +170,12 @@ class AliyunMinioFileBackend extends FileBackendStore
     {
         // 1. 检查是否有 explicit mapping
         if (!isset($this->containerPaths[$container])) {
-            // 如果没有配置映射，尝试直接使用容器名作为 Bucket 名 (Fallback)
-            // 但为了安全和规范，建议始终使用 containerPaths。
-            // 这里的 Fallback 主要是为了兼容未配置 containerPaths 的简单场景。
-            // error_log("MinIO: Container '$container' not found in containerPaths.");
+            // Fallback: 直接使用容器名作为 Bucket 名
+            // 记录调试日志，便于排查配置错误
+            wfDebugLog(
+                'AliyunMinioStorage',
+                "容器 '$container' 未在 containerPaths 中找到映射，将直接用作 Bucket 名"
+            );
             return [$container, ''];
         }
 
@@ -298,7 +322,9 @@ class AliyunMinioFileBackend extends FileBackendStore
             // 操作成功，清除缓存
             $this->invalidateCache($params['dst']);
         } catch (S3Exception $e) {
-            $status->fatal('backend-fail-internal', $e->getMessage());
+            // 安全：仅在日志中记录详细异常，对外返回通用错误，防止敏感信息泄露
+            $this->logS3Error('putObject', $e);
+            $status->fatal('backend-fail-internal', 'S3 写入操作失败');
         }
 
         return $status;
@@ -348,7 +374,9 @@ class AliyunMinioFileBackend extends FileBackendStore
                 }
                 return Status::newFatal('backend-fail-copy', $params['src']);
             }
-            $status->fatal('backend-fail-internal', $e->getMessage());
+            // 安全：仅在日志中记录详细异常，对外返回通用错误
+            $this->logS3Error('copyObject', $e);
+            $status->fatal('backend-fail-internal', 'S3 复制操作失败');
         }
 
         return $status;
@@ -373,7 +401,9 @@ class AliyunMinioFileBackend extends FileBackendStore
             ]);
             $this->invalidateCache($params['src']);
         } catch (S3Exception $e) {
-            $status->fatal('backend-fail-internal', $e->getMessage());
+            // 安全：仅在日志中记录详细异常，对外返回通用错误
+            $this->logS3Error('deleteObject', $e);
+            $status->fatal('backend-fail-internal', 'S3 删除操作失败');
         }
 
         return $status;
@@ -459,6 +489,26 @@ class AliyunMinioFileBackend extends FileBackendStore
     }
 
     /**
+     * [INTERNAL] 安全地记录 S3 异常日志
+     * 
+     * 将详细异常信息写入服务端日志，但不暴露给前端用户，
+     * 防止 Endpoint URL、Bucket 名称、请求签名等敏感信息泄露。
+     * 
+     * @param string $operation S3 操作名称 (如 putObject, copyObject)
+     * @param S3Exception $e S3 异常实例
+     */
+    protected function logS3Error(string $operation, S3Exception $e): void
+    {
+        wfLogWarning(sprintf(
+            'AliyunMinioStorage [%s] 失败: Code=%s, Status=%d, Message=%s',
+            $operation,
+            $e->getAwsErrorCode() ?? 'unknown',
+            $e->getStatusCode(),
+            $e->getMessage()
+        ));
+    }
+
+    /**
      * [READ] 清除缓存
      */
     protected function invalidateCache($path)
@@ -477,19 +527,24 @@ class AliyunMinioFileBackend extends FileBackendStore
         list($bucket, $key) = $this->getBucketAndObject($params['src']);
 
         try {
-            // 注册 Stream Wrapper (如果尚未注册)
-            $this->getClient()->registerStreamWrapper();
-            // 实际上 AWS SDK 会自动处理，或者我们可以直接用 getObject Body
-
             $result = $this->getClient()->getObject([
                 'Bucket' => $bucket,
                 'Key' => $key
             ]);
 
-            // 输出 Headers
-            header("Content-Type: " . $result['ContentType']);
+            // 安全加固：Content-Type 白名单过滤，防止 XSS
+            // 如果 S3 返回了 text/html 等可执行类型，强制降级为 application/octet-stream
+            $contentType = $result['ContentType'] ?? 'application/octet-stream';
+            $dangerousTypes = ['text/html', 'application/xhtml+xml', 'text/xml', 'application/xml'];
+            if (in_array(strtolower(explode(';', $contentType)[0]), $dangerousTypes, true)) {
+                $contentType = 'application/octet-stream';
+            }
+
+            // 安全 Header：禁止浏览器猜测 Content-Type
+            header('X-Content-Type-Options: nosniff');
+            header('Content-Type: ' . $contentType);
             if (isset($result['ContentLength'])) {
-                header("Content-Length: " . $result['ContentLength']);
+                header('Content-Length: ' . (int) $result['ContentLength']);
             }
 
             // 输出 Body
@@ -499,7 +554,8 @@ class AliyunMinioFileBackend extends FileBackendStore
             if ($e->getStatusCode() == 404) {
                 $status->fatal('backend-fail-contenttype', $params['src']);
             } else {
-                $status->fatal('backend-fail-stream', $e->getMessage());
+                $this->logS3Error('streamFile', $e);
+                $status->fatal('backend-fail-stream', 'S3 流式读取失败');
             }
         }
 

@@ -24,10 +24,5 @@
 	"aliyunminiostorage-verify-all-passed": "All verification steps passed!",
 	"aliyunminiostorage-verify-unexpected-backend": "Note: Backend is $1, expected AliyunMinioFileBackend.",
 	"aliyunminiostorage-verify-backend-not-found": "Could not load backend '$1'",
-	"aliyunminiostorage-extension-name": "Aliyun MinIO Storage",
-	"config-AliyunMinioStorageCredentials": "Credentials (key and secret) used for S3 connection.",
-	"config-AliyunMinioStorageRegion": "Storage region (e.g., oss-cn-hangzhou or us-east-1).",
-	"config-AliyunMinioStorageEndpoint": "Storage service endpoint URL.",
-	"config-AliyunMinioStorageServiceType": "Service type: 'aliyun' or 'minio'.",
-	"config-AliyunMinioStorageStatCacheExpiry": "Expiry time for stat cache in seconds."
+	"aliyunminiostorage-extension-name": "Aliyun MinIO Storage"
 }

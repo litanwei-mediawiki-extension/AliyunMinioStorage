@@ -1,0 +1,6 @@
+# Composer 依赖 - 在构建/部署阶段通过 composer install 安装
+/vendor/
+/composer.lock
+
+# macOS 系统文件
+.DS_Store

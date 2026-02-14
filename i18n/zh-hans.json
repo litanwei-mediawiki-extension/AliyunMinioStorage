@@ -24,10 +24,5 @@
 	"aliyunminiostorage-verify-all-passed": "所有验证步骤全部通过！SUCCESS",
 	"aliyunminiostorage-verify-unexpected-backend": "注意：后端类名为 $1，预期为 AliyunMinioFileBackend。",
 	"aliyunminiostorage-verify-backend-not-found": "无法加载后端 '$1'",
-	"aliyunminiostorage-extension-name": "Aliyun MinIO 存储",
-	"config-AliyunMinioStorageCredentials": "S3 连接凭证（key 和 secret）。",
-	"config-AliyunMinioStorageRegion": "对象存储区域（如 oss-cn-hangzhou 或 us-east-1）。",
-	"config-AliyunMinioStorageEndpoint": "存储服务终端地址（Endpoint）。",
-	"config-AliyunMinioStorageServiceType": "服务类型：'aliyun' 或 'minio'。",
-	"config-AliyunMinioStorageStatCacheExpiry": "Stat 缓存有效期（秒）。"
+	"aliyunminiostorage-extension-name": "Aliyun MinIO 存储"
 }

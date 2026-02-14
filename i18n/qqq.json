@@ -4,5 +4,25 @@
 			"Litanwei"
 		]
 	},
-	"aliyunminiostorage-desc": "{{desc|what=extension|name=AliyunMinioStorage|url=https://www.mediawiki.org/wiki/Extension:AliyunMinioStorage}}"
+	"aliyunminiostorage-desc": "{{desc|what=extension|name=AliyunMinioStorage|url=https://github.com/litanwei-mediawiki-extension/AliyunMinioStorage}}",
+	"aliyunminiostorage-extension-name": "扩展的显示名称",
+	"aliyunminiostorage-verify-start": "验证脚本启动时输出的消息",
+	"aliyunminiostorage-verify-backend-loaded": "验证脚本成功加载后端时输出的消息。$1 为后端类名",
+	"aliyunminiostorage-verify-target-container": "验证脚本输出目标容器名。$1 为容器名",
+	"aliyunminiostorage-verify-testing-create": "验证脚本测试写入操作时输出的消息",
+	"aliyunminiostorage-verify-create-success": "写入测试成功时的消息",
+	"aliyunminiostorage-verify-create-failed": "写入测试失败时的错误消息。$1 为错误详情",
+	"aliyunminiostorage-verify-testing-stat": "验证脚本测试状态读取时输出的消息",
+	"aliyunminiostorage-verify-file-not-exist": "写入后文件不存在时的错误消息",
+	"aliyunminiostorage-verify-stat-success": "状态读取成功时的消息。$1 为文件大小",
+	"aliyunminiostorage-verify-testing-list": "验证脚本测试列表读取时输出的消息",
+	"aliyunminiostorage-verify-list-success": "列表读取成功时的消息",
+	"aliyunminiostorage-verify-list-warning": "列表中未找到测试文件时的警告消息",
+	"aliyunminiostorage-verify-testing-delete": "验证脚本测试删除操作时输出的消息",
+	"aliyunminiostorage-verify-delete-success": "删除测试成功时的消息",
+	"aliyunminiostorage-verify-delete-failed": "删除测试失败时的错误消息。$1 为错误详情",
+	"aliyunminiostorage-verify-file-exists-after-delete": "删除后文件仍存在时的错误消息",
+	"aliyunminiostorage-verify-all-passed": "所有验证步骤均通过时的成功消息",
+	"aliyunminiostorage-verify-unexpected-backend": "后端类名不是预期类型时的提示消息。$1 为实际类名",
+	"aliyunminiostorage-verify-backend-not-found": "无法加载指定后端时的错误消息。$1 为后端名称"
 }
