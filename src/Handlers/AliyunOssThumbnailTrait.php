@@ -2,95 +2,112 @@
 
 namespace AliyunMinioStorage\Handlers;
 
-use File;
 use ThumbnailImage;
 use MediaTransformError;
 use MediaWiki\FileRepo\File\LocalFile;
 
 /**
- * Trait AliyunOssThumbnailTrait
- * 
- * 拦截内置的 doTransform 和 getScriptedTransform 方法。
- * 如果存储后端是 AliyunMinioFileBackend，则直接利用阿里云 OSS 的图片处理能力 (x-oss-process) 
- * 动态输出缩略图 URL，避免 MediaWiki 在本地启动 ImageMagick 下载原图进行 CPU/内存密集型转换。
+ * Route eligible thumbnail transforms through Aliyun OSS image processing.
+ *
+ * The handler returns a virtual ThumbnailImage whose URL points to the OSS
+ * custom CDN domain and includes x-oss-process. It falls back to MediaWiki's
+ * normal transform unless both the backend and the exact configured custom
+ * domain match. This keeps MinIO, test buckets, restricted URLs, and unrelated
+ * storage domains on the existing MediaWiki path.
  */
 trait AliyunOssThumbnailTrait
 {
+	/**
+	 * Build an OSS image-processing URL only for a configured public CDN object.
+	 *
+	 * @param mixed $image
+	 * @param array $params
+	 * @return string|false
+	 */
+	private function getAliyunOssThumbnailUrl( $image, array $params )
+	{
+		if ( !$image instanceof LocalFile ) {
+			return false;
+		}
 
-    /**
-     * 拦截静态/预生成的缩略图请求
-     */
-    public function doTransform($image, $dstPath, $dstUrl, $params, $flags = 0)
-    {
-        if (!$this->normaliseParams($image, $params)) {
-            return new MediaTransformError('thumbnail_error', $params['width'] ?? 0, $params['height'] ?? 0, 'Invalid parameters');
-        }
+		$backend = $image->getRepo()->getBackend();
+		if ( !$backend instanceof \AliyunMinioStorage\AliyunMinioFileBackend ) {
+			return false;
+		}
 
-        if ($image instanceof LocalFile) {
-            $repo = $image->getRepo();
-            $backend = $repo->getBackend();
+		$serviceType = strtolower( trim( getenv( 'MW_OSS_SERVICE_TYPE' ) ?:
+			( getenv( 'MW_OSS_ENDPOINT' ) ? 'aliyun' : 'minio' ) ) );
+		if ( $serviceType !== 'aliyun' && $serviceType !== 'oss' ) {
+			return false;
+		}
 
-            if ($backend instanceof \AliyunMinioStorage\AliyunMinioFileBackend) {
-                $serviceType = getenv('MW_OSS_SERVICE_TYPE') ?: (getenv('MW_OSS_ENDPOINT') ? 'aliyun' : 'minio');
+		$customDomain = strtolower( trim( (string)( getenv( 'MW_OSS_CUSTOM_DOMAIN' ) ?: '' ) ) );
+		if ( $customDomain === '' || !preg_match(
+			'/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/',
+			$customDomain
+		) ) {
+			return false;
+		}
 
-                // 仅针对真正的 Aliyun OSS 服务开启动态处理
-                if ($serviceType === 'aliyun' || $serviceType === 'oss') {
-                    $width = $params['physicalWidth'] ?? $params['width'];
+		$originalUrl = $image->getUrl();
+		$urlParts = is_string( $originalUrl ) ? parse_url( $originalUrl ) : false;
+		if ( !is_array( $urlParts ) || ( $urlParts['scheme'] ?? '' ) !== 'https' ||
+			strtolower( $urlParts['host'] ?? '' ) !== $customDomain || isset( $urlParts['user'] ) ||
+			isset( $urlParts['pass'] ) || isset( $urlParts['fragment'] ) ) {
+			return false;
+		}
 
-                    // 获取原图的 URL（直连 OSS 域名）
-                    $originalUrl = $image->getUrl();
+		$query = [];
+		parse_str( $urlParts['query'] ?? '', $query );
+		if ( array_key_exists( 'x-oss-process', $query ) ) {
+			return false;
+		}
 
-                    // 构造 OSS 图片处理后缀: image/resize,m_lfit,w_{width}
-                    $ossProcess = "image/resize,m_lfit,w_{$width}";
+		$width = (int)( $params['physicalWidth'] ?? $params['width'] ?? 0 );
+		if ( $width < 1 ) {
+			return false;
+		}
 
-                    // 拼接 URL 参数
-                    $separator = strpos($originalUrl, '?') === false ? '?' : '&';
-                    $thumbUrl = $originalUrl . $separator . 'x-oss-process=' . $ossProcess;
+		$separator = isset( $urlParts['query'] ) ? '&' : '?';
+		$process = rawurlencode( "image/resize,m_lfit,w_$width" );
+		return $originalUrl . $separator . 'x-oss-process=' . $process;
+	}
 
-                    // 强制返回 ThumbnailImage，令系统认为生成已“成功”
-                    // 路径置为 false，告知系统此文件完全是云端的虚拟文件，不落本地磁盘
-                    return new ThumbnailImage($image, $thumbUrl, false, $params);
-                }
-            }
-        }
+	/** Intercept direct transforms where MediaWiki asks a handler to scale locally. */
+	public function doTransform( $image, $dstPath, $dstUrl, $params, $flags = 0 )
+	{
+		if ( !$this->normaliseParams( $image, $params ) ) {
+			return new MediaTransformError(
+				'thumbnail_error',
+				$params['width'] ?? 0,
+				$params['height'] ?? 0,
+				'Invalid parameters'
+			);
+		}
 
-        // 退回父类的 doTransform (如: JpegHandler::doTransform)
-        return parent::doTransform($image, $dstPath, $dstUrl, $params, $flags);
-    }
+		$thumbUrl = $this->getAliyunOssThumbnailUrl( $image, $params );
+		if ( $thumbUrl !== false ) {
+			return new ThumbnailImage( $image, $thumbUrl, false, $params );
+		}
 
-    /**
-     * 拦截动态请求 (thumb.php)
-     * 系统尝试通过 thumbScriptUrl 动态生成缩略图时，直接劫持返回原图 + OSS 参数
-     */
-    public function getScriptedTransform($image, $script, $params)
-    {
-        if (!$this->normaliseParams($image, $params)) {
-            return false;
-        }
+		return parent::doTransform( $image, $dstPath, $dstUrl, $params, $flags );
+	}
 
-        if ($image instanceof LocalFile) {
-            $repo = $image->getRepo();
-            $backend = $repo->getBackend();
+	/** Intercept thumb.php scripted transforms and return the OSS CDN URL directly. */
+	public function getScriptedTransform( $image, $script, $params )
+	{
+		if ( !$this->normaliseParams( $image, $params ) ) {
+			return false;
+		}
 
-            if ($backend instanceof \AliyunMinioStorage\AliyunMinioFileBackend) {
-                $serviceType = getenv('MW_OSS_SERVICE_TYPE') ?: (getenv('MW_OSS_ENDPOINT') ? 'aliyun' : 'minio');
+		if ( $image instanceof LocalFile &&
+			( $image->mustRender() || $params['width'] < $image->getWidth() ) ) {
+			$thumbUrl = $this->getAliyunOssThumbnailUrl( $image, $params );
+			if ( $thumbUrl !== false ) {
+				return new ThumbnailImage( $image, $thumbUrl, false, $params );
+			}
+		}
 
-                if ($serviceType === 'aliyun' || $serviceType === 'oss') {
-                    $width = $params['physicalWidth'] ?? $params['width'];
-
-                    $originalUrl = $image->getUrl();
-                    $ossProcess = "image/resize,m_lfit,w_{$width}";
-                    $separator = strpos($originalUrl, '?') === false ? '?' : '&';
-                    $thumbUrl = $originalUrl . $separator . 'x-oss-process=' . $ossProcess;
-
-                    if ($image->mustRender() || $params['width'] < $image->getWidth()) {
-                        return new ThumbnailImage($image, $thumbUrl, false, $params);
-                    }
-                }
-            }
-        }
-
-        // 退回父类的 getScriptedTransform
-        return parent::getScriptedTransform($image, $script, $params);
-    }
+		return parent::getScriptedTransform( $image, $script, $params );
+	}
 }
